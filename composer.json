@@ -1,6 +1,7 @@
 {
     "name": "zippovich2/expressions-parser",
     "description": "Used shunting-yard algorithm to parse any expressions and RPN(Reverse Polish Notations) to execute it.",
+    "keywords": ["shunting-yard", "RPN", "reverse polish notations", "arithmetical expressions parser", "logical expressions parser", "expressions parser", "equation", "math"],
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -29,6 +30,6 @@
     "scripts": {
         "cs-check": "php-cs-fixer fix --allow-risky=yes --diff --ansi --dry-run",
         "cs-fix": "php-cs-fixer fix --allow-risky=yes --diff --ansi",
-        "tests": "phpunit --colors=always tests/"
+        "tests": "phpunit  --verbose --colors=always"
     }
 }

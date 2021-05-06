@@ -13,6 +13,7 @@ namespace Zippovich2\ExpressionsParser\Test;
 
 use PHPUnit\Framework\TestCase;
 use Zippovich2\ExpressionsParser\Operator;
+use Zippovich2\ExpressionsParser\OperatorFactory;
 use Zippovich2\ExpressionsParser\OperatorsList;
 use Zippovich2\ExpressionsParser\Parser;
 
@@ -26,16 +27,17 @@ class ParserTest extends TestCase
     protected function setUp(): void
     {
         $operatorsList = new OperatorsList();
-        $operatorsList->add(new Operator('+', 1, function ($a, $b) {
+        $operatorsList->add(OperatorFactory::leftAssociative('+', function ($a, $b) {
             return $a + $b;
         }));
-        $operatorsList->add(new Operator('-', 1, function ($a, $b) {
+        $operatorsList->add(OperatorFactory::leftAssociative('-', function ($a, $b) {
             return $a - $b;
         }));
-        $operatorsList->add(new Operator('*', 2));
-        $operatorsList->add(new Operator('/', 2));
-        $operatorsList->add(new Operator('^', 2, null, Operator::TYPE_RIGHT_ASSOCIATIVE));
-        $operatorsList->add(new Operator('max', 3, null, Operator::TYPE_FUNCTION));
+        $operatorsList->add(OperatorFactory::leftAssociative('*', null, 2));
+        $operatorsList->add(OperatorFactory::leftAssociative('/', null, 2));
+        $operatorsList->add(OperatorFactory::rightAssociative('^'));
+        $operatorsList->add(OperatorFactory::func('max'));
+        $operatorsList->add(OperatorFactory::constant('e', \M_E));
 
         $this->parser = new Parser($operatorsList);
     }
@@ -45,6 +47,7 @@ class ParserTest extends TestCase
         return [
             ['1+2+3', ['1', '+', '2', '+', '3']],
             ['1+ 2 + 3', ['1', '+', '2', '+', '3']],
+            ['1+e*(2-1)', ['1', '+', 'e', '*', '(', '2', '-', '1', ')']],
             ['2 * max(1,2, 8, 1 )  ', ['2', '*', 'max', '(', '1', ',', '2', ',', '8', ',', '1', ')']],
             ['1 * 22 + 3*(1   -13*(1+2))', ['1', '*', '22', '+', '3', '*', '(', '1', '-', '13', '*', '(', '1', '+', '2', ')', ')']],
             ['3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3', ['3', '+', '4', '*', '2', '/', '(', '1', '-', '5', ')', '^', '2', '^', '3']],
@@ -56,6 +59,7 @@ class ParserTest extends TestCase
         return [
             ['1+2+3', ['1', '2', '+', '3', '+']],
             ['1+ 2 + 3', ['1', '2', '+', '3', '+']],
+            ['1+e*(2-1)', ['1', 'e', '2', '1', '-', '*', '+']],
             ['2 * max(1,2, 8, 1 )  ', ['2', '1', '2', '8', '1', ',', ',', ',', 'max', '*']],
             ['1 * 22 + 3*(1   -13*(1+2))', ['1', '22', '*', '3', '1', '13', '1', '2', '+', '*', '-', '*', '+']],
             ['3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3', ['3', '4', '2', '*', '1', '5', '-', '2', '3', '^', '^', '/', '+']],
@@ -67,6 +71,7 @@ class ParserTest extends TestCase
         return [
             [['1', '2', '+', '3', '+'], 6],
             [['2', '1', '2', '8', '1', ',', ',', ',', 'max', '*'], 16],
+            [['1', 'e', '2', '1', '-', '*', '+'], 3.718281828459],
             [['1', '22', '*', '3', '1', '13', '1', '2', '+', '*', '-', '*', '+'], -92],
             [['3', '4', '2', '*', '1', '5', '-', '2', '3', '^', '^', '/', '+'], 3.0001220703125],
         ];
@@ -77,6 +82,7 @@ class ParserTest extends TestCase
         return [
             ['1+2+3', 6],
             ['2 * max(1,2, 8, 1 )  ', 16],
+            ['1+e*(2-1)', 3.718281828459],
             ['1 * 22 + 3*(1   -13*(1+2))', -92],
             ['3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3', 3.0001220703125],
         ];
@@ -149,10 +155,8 @@ class ParserTest extends TestCase
     /**
      * @dataProvider parseAndProcessRPNProvider
      */
-    public function testParseAndProcessRPN(string $expression, $result): void
+    public function testEval(string $expression, $result): void
     {
-        $operatorsList = $this->parser->getOperators();
-
         $defaultCallback = function ($operator, ...$tokens) {
             switch ($operator) {
                 case '*':
@@ -168,7 +172,7 @@ class ParserTest extends TestCase
             throw new \LogicException('Unreachable code.');
         };
 
-        static::assertEquals($result, Parser::parseAndProcess($expression, $operatorsList, $defaultCallback));
+        static::assertEquals($result, $this->parser->eval($expression, $defaultCallback));
     }
 
     public function testSetOperators(): void
@@ -187,6 +191,26 @@ class ParserTest extends TestCase
         static::assertEquals(['1', '&', '0'], $tokens);
         static::assertEquals(['1', '0', '&'], $rpn);
         static::assertFalse($result);
+    }
+
+    public function testAddOperator(): void
+    {
+        $this->parser->addOperator(new Operator('&', 1, function ($a, $b) {
+            return $a && $b;
+        }));
+
+        $tokens = $this->parser->parseTokens('1 & 0');
+        $rpn = $this->parser->convertToRPN('1 & 0');
+        $result = $this->parser->processRPN($rpn);
+
+        static::assertEquals(['1', '&', '0'], $tokens);
+        static::assertEquals(['1', '0', '&'], $rpn);
+        static::assertFalse($result);
+    }
+
+    public function testGetOperators(): void
+    {
+        static::assertInstanceOf(OperatorsList::class, $this->parser->getOperators());
     }
 
     /**

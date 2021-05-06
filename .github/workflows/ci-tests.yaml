@@ -20,8 +20,12 @@ jobs:
                 with:
                     php-version: ${{ matrix.php-versions }}
                     coverage: xdebug
+
             -   name: Install Composer dependencies
                 run: composer install --prefer-dist --no-interaction --no-suggest
 
             -   name: Execute tests
-                run: vendor/bin/phpunit --verbose
+                run: composer tests
+
+            -   name: Check codestyle
+                run: composer cs-check

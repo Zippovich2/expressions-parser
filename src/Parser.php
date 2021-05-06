@@ -33,9 +33,14 @@ class Parser
         return $this->operators;
     }
 
+    public function addOperator(Operator $operator): void
+    {
+        $this->operators->add($operator);
+    }
+
     public function parseTokens(string $expression): array
     {
-        $operatorsSymbols = \array_merge($this->operators->getSymbolsArray(), ['(', ')', ',']);
+        $operatorsSymbols = \array_merge($this->operators->getSymbolsArray(), Operator::RESERVED_OPERATOR_SYMBOLS);
 
         $preparedOperators = \array_map(function ($operatorSymbol) {
             return \preg_quote($operatorSymbol, '/');
@@ -86,8 +91,16 @@ class Parser
         $operatorStack = [];
 
         foreach ($tokens as $token) {
-            if (!\in_array($token, $operatorsSymbols, true)) {
+            $operatorType = $this->operators->getOperatorType($token);
+
+            if (!\in_array($token, $operatorsSymbols, true) || Operator::TYPE_CONSTANT === $operatorType) {
                 $output[] = $token;
+
+                continue;
+            }
+
+            if (Operator::TYPE_FUNCTION === $operatorType) {
+                \array_unshift($operatorStack, $token);
 
                 continue;
             }
@@ -101,7 +114,6 @@ class Parser
 
                 $lastOperatorInStackPrecedence = $this->operators->getPrecedence($operatorStack[0]);
                 $currentOperatorPrecedence = $this->operators->getPrecedence($token);
-                $operatorType = $this->operators->getOperatorType($token);
 
                 while (
                     0 !== \count($operatorStack)
@@ -159,18 +171,27 @@ class Parser
             if (\in_array($token, $operatorsSymbols, true)) {
                 $numberOfTokens = 2;
                 $operatorSymbol = \array_pop($stack);
+                $operatorType = $this->operators->getOperatorType($operatorSymbol);
                 $tokens = [];
 
-                if (Operator::TYPE_FUNCTION === $this->operators->getOperatorType($operatorSymbol)) {
-                    $numberOfTokens = 0;
-                    $lastToken = \array_pop($stack);
-
-                    while (',' === $lastToken) {
-                        ++$numberOfTokens;
+                switch ($operatorType) {
+                    case Operator::TYPE_FUNCTION:
+                        $numberOfTokens = 0;
                         $lastToken = \array_pop($stack);
-                    }
 
-                    $tokens[] = $lastToken;
+                        while (',' === $lastToken) {
+                            ++$numberOfTokens;
+                            $lastToken = \array_pop($stack);
+                        }
+
+                        $tokens[] = $lastToken;
+
+                        break;
+                    case Operator::TYPE_CONSTANT:
+                        $numberOfTokens = 0;
+                        $tokens[] = $token;
+
+                        break;
                 }
 
                 while ($numberOfTokens > 0) {
@@ -182,7 +203,7 @@ class Parser
                 foreach ($tokens as $item) {
                     if (null === $item
                         || null === $operatorSymbol
-                        || \in_array($item, $operatorsSymbols, true)
+                        || (\in_array($item, $operatorsSymbols, true) && Operator::TYPE_CONSTANT !== $operatorType)
                     ) {
                         throw new \RuntimeException('Invalid expression.');
                     }
@@ -210,11 +231,10 @@ class Parser
     /**
      * @return mixed
      */
-    public static function parseAndProcess(string $expression, OperatorsList $operatorsList, ?\Closure $defaultCallback = null)
+    public function eval(string $expression, ?\Closure $defaultCallback = null)
     {
-        $parser = new self($operatorsList);
-        $rpn = $parser->convertToRPN($expression);
+        $rpn = $this->convertToRPN($expression);
 
-        return $parser->processRPN($rpn, $defaultCallback);
+        return $this->processRPN($rpn, $defaultCallback);
     }
 }

@@ -84,9 +84,22 @@ class OperatorsList implements \IteratorAggregate, \Countable
 
     public function getSymbolsArray(): array
     {
-        return \array_map(function (Operator $operator) {
+        $operators = \array_map(function (Operator $operator) {
             return $operator->getSymbol();
         }, $this->operators);
+
+        \uasort($operators, function ($a, $b) {
+            $aLen = \strlen($a);
+            $bLen = \strlen($b);
+
+            if ($aLen === $bLen) {
+                return 0;
+            }
+
+            return ($aLen < $bLen) ? 1 : -1;
+        });
+
+        return $operators;
     }
 
     /**

@@ -16,6 +16,8 @@ class Operator
     public const TYPE_LEFT_ASSOCIATIVE = 0;
     public const TYPE_RIGHT_ASSOCIATIVE = 1;
     public const TYPE_FUNCTION = 2;
+    public const TYPE_CONSTANT = 3;
+    public const RESERVED_OPERATOR_SYMBOLS = ['(', ')', ','];
 
     /**
      * @var string
@@ -43,6 +45,10 @@ class Operator
         ?\Closure $callback = null,
         int $type = self::TYPE_LEFT_ASSOCIATIVE
     ) {
+        if (\in_array($symbol, self::RESERVED_OPERATOR_SYMBOLS, true)) {
+            throw new \InvalidArgumentException(\sprintf('The symbols "%s" are reserved.', \implode('", "', self::RESERVED_OPERATOR_SYMBOLS)));
+        }
+
         $this->symbol = $symbol;
         $this->precedence = $precedence;
         $this->type = $type;
