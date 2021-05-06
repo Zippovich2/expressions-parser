@@ -2,7 +2,7 @@
 
 Used shunting-yard algorithm to convert any expressions to RPN(Reverse Polish Notations) and process it.
 
-[![Build](https://github.com/zippovich2/expressions-parser/actions/workflows/ci-tests.yaml/badge.svg)](https://github.com/Zippovich2/expressions-parser/actions/workflows/ci-tests.yaml)
+[![Tests](https://github.com/zippovich2/expressions-parser/actions/workflows/ci-tests.yaml/badge.svg?branch=main)](https://github.com/Zippovich2/expressions-parser/actions/workflows/ci-tests.yaml)
 [![Packagist](https://img.shields.io/packagist/v/zippovich2/expressions-parser.svg)](https://packagist.org/packages/zippovich2/expressions-parser)
 
 - [Installation](#installation)
