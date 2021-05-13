@@ -4,6 +4,7 @@
     "keywords": ["shunting-yard", "RPN", "reverse polish notations", "arithmetical expressions parser", "logical expressions parser", "expressions parser", "equation", "math"],
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "stable",
     "authors": [
         {
             "name": "Roman Skoropadsky",
